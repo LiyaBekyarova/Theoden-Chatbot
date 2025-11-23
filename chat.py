@@ -1,13 +1,11 @@
 
 import random
 import json
+import re
 import torch
 from model import NeuralNet
 from nltk_utils import tokenize, bag_of_words
 from weather_utils import get_real_weather
-import warnings
-from urllib3.exceptions import NotOpenSSLWarning
-warnings.filterwarnings('ignore', category=NotOpenSSLWarning)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -29,16 +27,30 @@ model.load_state_dict(model_state)
 model.eval()
 
 bot_name = "Théoden"
-print("Harken, rider of distant lands! Let us hold counsel together in speech. When thou wouldst depart, say only 'quit'.")
 
-while True:
-    sentence = input("You: ").strip()
+def extract_city(msg):
+    """Extract city name from user message."""
+    # Common patterns: "weather in Paris", "weather for London", "Paris weather", etc.
+    patterns = [
+        r'(?:weather|temperature|forecast)\s+(?:in|for|at)\s+([A-Za-z\s]+)',
+        r'([A-Za-z\s]+)\s+weather',
+        r"what'?s?\s+(?:the\s+)?weather\s+(?:like\s+)?(?:in|at|for)\s+([A-Za-z\s]+)",
+    ]
     
-    if sentence.lower() in ["quit", "farewell", "goodbye", "i ride hence"]:
-        print(f"{bot_name}: Fare thee well, rider of the Mark! Ride swift, ride true — may the wind ever fill thy sails. Westu hál!")
-        break
+    for pattern in patterns:
+        match = re.search(pattern, msg, re.IGNORECASE)
+        if match:
+            city = match.group(1).strip()
+            # Remove common words that aren't cities
+            stopwords = ['the', 'a', 'an', 'like', 'today', 'tomorrow']
+            city_words = [w for w in city.split() if w.lower() not in stopwords]
+            if city_words:
+                return ' '.join(city_words)
+    
+    return None
 
-    sentence = tokenize(sentence)
+def get_response(msg):
+    sentence = tokenize(msg)
     X = bag_of_words(sentence, all_words)
     X = X.reshape(1, X.shape[0])
     X = torch.from_numpy(X).to(device)
@@ -54,15 +66,30 @@ while True:
         for intent in intents['intents']:
             if tag == intent["tag"]:
                 if tag == "weather":
-                    print(f"{bot_name}: Of what land dost thou seek tidings? Speak the name of the city!")
-                    city = input("You: ").strip()
-                    if not city:
-                        city = "Edoras"
-                    weather_report = get_real_weather(city)
-                    print(f"{bot_name}: {weather_report}")
+                    city = extract_city(msg)
+                    if city:
+                        weather_report = get_real_weather(city)
+                        return weather_report
+                    else:
+                        # Default to Varna if no city specified
+                        weather_report = get_real_weather("Varna")
+                        return f"Of what land dost thou seek tidings? I shall speak of Varna for now:\n{weather_report}"
                 else:
                     response = random.choice(intent['responses'])
-                    print(f"{bot_name}: {response}")
-                break
+                    return response
+                
     else:
-        print(f"{bot_name}: Thy words are strange to me, wayfarer. Speak plainer, or teach me thy tongue.")
+        return "Thy words are strange to me, wayfarer. Speak plainer, or teach me thy tongue."
+
+if __name__ == "__main__":
+    print("Harken, rider of distant lands! Let us hold counsel together in speech. When thou wouldst depart, say only 'quit'.")
+    
+    while True:
+        sentence = input("You: ").strip()
+        
+        if sentence.lower() in ["quit", "farewell", "goodbye", "i ride hence"]:
+            print(f"{bot_name}: Fare thee well, rider of the Mark! Ride swift, ride true — may the wind ever fill thy sails. Westu hál!")
+            break
+
+        response = get_response(sentence)
+        print(f"{bot_name}: {response}")
