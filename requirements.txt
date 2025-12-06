@@ -2,4 +2,4 @@ torch
 nltk
 requests
 numpy
-
+scikit-learn

@@ -23,6 +23,7 @@ This project implements an intent-classification chatbot using a small feed-forw
 - numpy
 - nltk
 - requests
+-scikit-learn
 
 Install with:
 ```bash
