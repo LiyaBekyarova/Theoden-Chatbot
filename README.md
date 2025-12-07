@@ -39,7 +39,12 @@ python train.py
 ```
 This will create `data.pth` containing the trained model and vocabulary.
 
-## Running the Chatbot
+## Running the Chatbot(GUI)
+```bash
+python app.py
+```
+
+## Running the Chatbot(Terminal)
 ```bash
 python chat.py
 ```
