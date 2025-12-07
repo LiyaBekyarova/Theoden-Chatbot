@@ -8,8 +8,10 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.metrics import accuracy_score,classification_report
 import torch
+import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader
 from model import NeuralNet
 
 print("=" * 60)
@@ -64,7 +66,7 @@ results = []
 
 # ==================== MODEL 1: Logistic Regression ====================
 print("\n" + "=" * 60)
-print("1️⃣  LOGISTIC REGRESSION (Linear Classifier)")
+print("LOGISTIC REGRESSION (Linear Classifier)")
 print("=" * 60)
 try:
     lr_model = LogisticRegression(max_iter=1000, random_state=42)
@@ -78,7 +80,7 @@ except Exception as e:
 
 # ==================== MODEL 2: Decision Tree ====================
 print("\n" + "=" * 60)
-print("2️⃣  DECISION TREE CLASSIFIER")
+print("DECISION TREE CLASSIFIER")
 print("=" * 60)
 try:
     dt_model = DecisionTreeClassifier(random_state=42, max_depth=10)
@@ -92,7 +94,7 @@ except Exception as e:
 
 # ==================== MODEL 3: Random Forest ====================
 print("\n" + "=" * 60)
-print("3️⃣  RANDOM FOREST CLASSIFIER (Ensemble)")
+print("RANDOM FOREST CLASSIFIER (Ensemble)")
 print("=" * 60)
 try:
     rf_model = RandomForestClassifier(n_estimators=100, random_state=42, max_depth=10)
@@ -106,7 +108,7 @@ except Exception as e:
 
 # ==================== MODEL 4: Support Vector Machine ====================
 print("\n" + "=" * 60)
-print("4️⃣  SUPPORT VECTOR MACHINE (SVM)")
+print("SUPPORT VECTOR MACHINE (SVM)")
 print("=" * 60)
 try:
     svm_model = SVC(kernel='rbf', random_state=42)
@@ -116,11 +118,11 @@ try:
     print(f"Accuracy: {svm_accuracy * 100:.2f}%")
     results.append(("SVM (RBF kernel)", svm_accuracy))
 except Exception as e:
-    print(f"❌ Error: {e}")
+    print(f" Error: {e}")
 
 # ==================== MODEL 5: Naive Bayes ====================
 print("\n" + "=" * 60)
-print("5️⃣  NAIVE BAYES CLASSIFIER")
+print("NAIVE BAYES CLASSIFIER")
 print("=" * 60)
 try:
     nb_model = MultinomialNB()
@@ -130,66 +132,110 @@ try:
     print(f"Accuracy: {nb_accuracy * 100:.2f}%")
     results.append(("Naive Bayes", nb_accuracy))
 except Exception as e:
-    print(f"❌ Error: {e}")
+    print(f" Error: {e}")
 
-# ==================== MODEL 6: Neural Network (Current) ====================
+# ==================== MODEL 6: NEURAL NETWORK – WINNING VERSION ====================
 print("\n" + "=" * 60)
-print("6️⃣  NEURAL NETWORK (PyTorch - Current Model)")
+print("6 NEURAL NETWORK")
 print("=" * 60)
+
 try:
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    
-    # Load the trained model
-    data = torch.load('data.pth')
-    input_size = data["input_size"]
-    hidden_size = data["hidden_size"]
-    output_size = data["output_size"]
-    
-    nn_model = NeuralNet(input_size, hidden_size, output_size).to(device)
-    nn_model.load_state_dict(data["model_state"])
-    nn_model.eval()
-    
-    # Test on the same test set
-    X_test_tensor = torch.from_numpy(X_test).to(device)
-    with torch.no_grad():
-        outputs = nn_model(X_test_tensor)
-        _, nn_pred = torch.max(outputs, dim=1)
-        nn_pred = nn_pred.cpu().numpy()
-    
-    nn_accuracy = accuracy_score(y_test, nn_pred)
-    print(f"Accuracy: {nn_accuracy * 100:.2f}%")
-    results.append(("Neural Network (PyTorch)", nn_accuracy))
-except Exception as e:
-    print(f"❌ Error: {e}")
 
-# ==================== FINAL COMPARISON ====================
+    class TrainDataset(Dataset):
+        def __init__(self, X, y):
+            self.x_data = torch.from_numpy(X).float()
+            self.y_data = torch.from_numpy(y).long()
+        def __len__(self): return len(self.x_data)
+        def __getitem__(self, idx): return self.x_data[idx], self.y_data[idx]
+
+    train_loader = DataLoader(TrainDataset(X_train, y_train), batch_size=8, shuffle=True)
+
+    input_size = X_train.shape[1]
+    hidden_size = 256
+    output_size = len(tags)
+
+    model = NeuralNet(input_size, hidden_size, output_size).to(device)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)  # L2
+
+    print("Training with strong regularization...")
+    best_loss = float('inf')
+    patience = 30
+    wait = 0
+
+    for epoch in range(1000):
+        model.train()
+        epoch_loss = 0
+        for words, labels in train_loader:
+            words, labels = words.to(device), labels.to(device)
+            outputs = model(words)
+            loss = criterion(outputs, labels)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            epoch_loss += loss.item()
+
+        epoch_loss /= len(train_loader) 
+        if epoch_loss < best_loss - 1e-4:
+            best_loss = epoch_loss
+            wait = 0
+            best_state = model.state_dict()
+        else:
+            wait += 1
+            if wait >= patience:
+                print(f"   EARLY STOPPING at epoch {epoch+1} | Best loss: {best_loss:.6f}")
+                break
+
+        if (epoch + 1) % 50 == 0:
+            print(f"   Epoch {epoch+1:3d} | Avg Loss: {epoch_loss:.6f} | Best: {best_loss:.6f}")
+
+    # Load best model
+    model.load_state_dict(best_state)
+    model.eval()
+    with torch.no_grad():
+        outputs = model(torch.from_numpy(X_test).float().to(device))
+        _, predicted = torch.max(outputs, 1)
+        acc = accuracy_score(y_test, predicted.cpu().numpy())
+        nn_pred = predicted.cpu().numpy()
+    
+    print(f"TEST ACCURACY: {acc * 100:.2f}%")
+    results.append(("Neural Network (PyTorch)", acc))
+
+except Exception as e:
+    print(f"Error: {e}")
+    results.append(("Neural Network (PyTorch)", 0.0))
+
+# ==================== FINAL CLEAN OUTPUT ====================
 print("\n" + "=" * 60)
-print(" FINAL RESULTS - MODEL COMPARISON")
+print(" FINAL RESULTS - CLEAN SUMMARY")
 print("=" * 60)
 
 results.sort(key=lambda x: x[1], reverse=True)
 
-print(f"\n{'Rank':<6} {'Model':<30} {'Accuracy':<15}")
-print("-" * 60)
-for i, (model_name, accuracy) in enumerate(results, 1):
-    medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else "  "
-    print(f"{medal} {i:<4} {model_name:<30} {accuracy*100:>6.2f}%")
+print(f"\n{'Rank':<4} {'Model':<28} {'Accuracy'}")
+print("-" * 50)
+for i, (name, acc) in enumerate(results, 1):
+    medal = "1st" if i == 1 else "2nd" if i == 2 else "3rd" if i == 3 else "   "
+    print(f"{medal} {i:<3} {name:<28} {acc*100:6.2f}%")
 
 print("\n" + "=" * 60)
-print(f" WINNER: {results[0][0]} with {results[0][1]*100:.2f}% accuracy!")
+print(f" WINNER → {results[0][0]} with {results[0][1]*100:.2f}% accuracy!")
 print("=" * 60)
 
-print(f"\n📊 Detailed Classification Report for {results[0][0]}:")
-print("-" * 60)
-if results[0][0] == "Logistic Regression":
-    print(classification_report(y_test, lr_pred, target_names=tags))
-elif results[0][0] == "Decision Tree":
-    print(classification_report(y_test, dt_pred, target_names=tags))
-elif results[0][0] == "Random Forest":
-    print(classification_report(y_test, rf_pred, target_names=tags))
-elif results[0][0] == "SVM (RBF kernel)":
-    print(classification_report(y_test, svm_pred, target_names=tags))
-elif results[0][0] == "Naive Bayes":
-    print(classification_report(y_test, nb_pred, target_names=tags))
-elif results[0][0] == "Neural Network (PyTorch)":
-    print(classification_report(y_test, nn_pred, target_names=tags))
+winner_name = results[0][0]
+y_pred_winner = {
+    "Logistic Regression": lr_pred,
+    "Decision Tree": dt_pred,
+    "Random Forest": rf_pred,
+    "SVM (RBF kernel)": svm_pred,
+    "Naive Bayes": nn_pred,
+    "Neural Network (PyTorch)":  nn_pred
+}[winner_name]
+
+print(f"\nClassification Report — {winner_name}:")
+print(classification_report(
+    y_test, y_pred_winner,
+    target_names=tags,
+    zero_division=0         
+))

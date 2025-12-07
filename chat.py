@@ -9,7 +9,6 @@ from weather_utils import get_real_weather
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# Load intents and model
 with open('intents.json', 'r') as f:
     intents = json.load(f)
 
@@ -71,7 +70,6 @@ def get_response(msg):
                         weather_report = get_real_weather(city)
                         return weather_report
                     else:
-                        # Default to Varna if no city specified
                         weather_report = get_real_weather("Varna")
                         return f"Of what land dost thou seek tidings? I shall speak of Varna for now:\n{weather_report}"
                 else:
