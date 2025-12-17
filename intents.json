@@ -18,8 +18,8 @@
       "tag": "farewell",
       "patterns": [
         "bye", "goodbye", "see you", "see ya", "later", "gotta go",
-        "i'm out", "farewell", "good night", "catch you later", "night",
-        "until next time", "take care"
+        "i'm out", "farewell", "catch you later",
+        "until next time", "take care", "quit", "exit", "leave"
       ],
       "responses": [
         "Forth, and fear no darkness! May the wind be ever at thy back.",

@@ -51,11 +51,11 @@ class ChatDataset(Dataset):
         return self.n_samples
 
 batch_size = 8
-hidden_size = 256           
+hidden_size = 64
 input_size = len(all_words)
 output_size = len(tags)
 learning_rate = 0.001
-num_epochs = 1000           
+num_epochs = 1000
 
 dataset = ChatDataset()
 train_loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, num_workers=0)

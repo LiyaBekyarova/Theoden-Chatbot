@@ -26,6 +26,7 @@ model.load_state_dict(model_state)
 model.eval()
 
 bot_name = "Théoden"
+CONFIDENCE_THRESHOLD = 0.65
 
 def extract_city(msg):
     """Extract city name from user message."""
@@ -61,7 +62,7 @@ def get_response(msg):
     probs = torch.softmax(output, dim=1)
     prob = probs[0][predicted.item()]
 
-    if prob.item() > 0.75:
+    if prob.item() > CONFIDENCE_THRESHOLD:
         for intent in intents['intents']:
             if tag == intent["tag"]:
                 if tag == "weather":

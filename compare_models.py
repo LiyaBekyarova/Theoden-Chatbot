@@ -13,6 +13,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from model import NeuralNet
+import os
 
 print("=" * 60)
 print("CHATBOT INTENT CLASSIFICATION - MODEL COMPARISON")
@@ -152,7 +153,7 @@ try:
     train_loader = DataLoader(TrainDataset(X_train, y_train), batch_size=8, shuffle=True)
 
     input_size = X_train.shape[1]
-    hidden_size = 256
+    hidden_size = 64
     output_size = len(tags)
 
     model = NeuralNet(input_size, hidden_size, output_size).to(device)
@@ -164,7 +165,7 @@ try:
     patience = 30
     wait = 0
 
-    for epoch in range(1000):
+    for epoch in range(400):
         model.train()
         epoch_loss = 0
         for words, labels in train_loader:
@@ -239,3 +240,49 @@ print(classification_report(
     target_names=tags,
     zero_division=0         
 ))
+# ==================== SAVE RESULTS TO JSON FOR NOTEBOOK ====================
+
+# Събиране на всички предикции
+predictions = {
+    "Logistic Regression": lr_pred.tolist() if 'lr_pred' in locals() else None,
+    "Decision Tree": dt_pred.tolist() if 'dt_pred' in locals() else None,
+    "Random Forest": rf_pred.tolist() if 'rf_pred' in locals() else None,
+    "SVM (RBF kernel)": svm_pred.tolist() if 'svm_pred' in locals() else None,
+    "Naive Bayes": nb_pred.tolist() if 'nb_pred' in locals() else None,
+    "Neural Network (PyTorch)": nn_pred.tolist() if 'nn_pred' in locals() else None
+}
+
+# Финални резултати
+final_results = []
+for name, acc in results:
+    final_results.append({
+        "model": name,
+        "accuracy": round(acc * 100, 2)
+    })
+
+# Сортирай по accuracy
+final_results = sorted(final_results, key=lambda x: x['accuracy'], reverse=True)
+
+# Запис на всичко в JSON
+output_data = {
+    "dataset_info": {
+        "total_samples": len(X),
+        "train_samples": len(X_train),
+        "test_samples": len(X_test),
+        "num_intents": len(tags),
+        "vocabulary_size": len(all_words),
+        "intents": tags
+    },
+    "model_results": final_results,
+    "winner_model": final_results[0]["model"],
+    "winner_accuracy": final_results[0]["accuracy"],
+    "test_labels": y_test.tolist(),
+    "predictions": predictions
+}
+
+# Запис в файл
+output_path = "model_comparison_results.json"
+with open(output_path, 'w', encoding='utf-8') as f:
+    json.dump(output_data, f, indent=2, ensure_ascii=False)
+
+print(f"\nРезултатите са записани в: {output_path}")
