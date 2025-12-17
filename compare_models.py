@@ -1,4 +1,3 @@
-# compare_models.py
 import json
 import numpy as np
 from nltk_utils import tokenize, stem, bag_of_words
@@ -19,7 +18,6 @@ print("=" * 60)
 print("CHATBOT INTENT CLASSIFICATION - MODEL COMPARISON")
 print("=" * 60)
 
-# Load and prepare data
 with open('intents.json', 'r') as f:
     intents = json.load(f)
 
@@ -40,7 +38,6 @@ all_words = [stem(w) for w in all_words if w not in ignore_words]
 all_words = sorted(set(all_words))
 tags = sorted(set(tags))
 
-# Create training data
 X = []
 y = []
 for (pattern_sentence, tag) in xy:
@@ -64,8 +61,6 @@ print(f"   Vocabulary size: {len(all_words)}")
 print(f"   Intents: {', '.join(tags)}")
 
 results = []
-
-# ==================== MODEL 1: Logistic Regression ====================
 print("\n" + "=" * 60)
 print("LOGISTIC REGRESSION (Linear Classifier)")
 print("=" * 60)
@@ -79,7 +74,6 @@ try:
 except Exception as e:
     print(f"Error: {e}")
 
-# ==================== MODEL 2: Decision Tree ====================
 print("\n" + "=" * 60)
 print("DECISION TREE CLASSIFIER")
 print("=" * 60)
@@ -93,7 +87,6 @@ try:
 except Exception as e:
     print(f"Error: {e}")
 
-# ==================== MODEL 3: Random Forest ====================
 print("\n" + "=" * 60)
 print("RANDOM FOREST CLASSIFIER (Ensemble)")
 print("=" * 60)
@@ -107,7 +100,6 @@ try:
 except Exception as e:
     print(f"Error: {e}")
 
-# ==================== MODEL 4: Support Vector Machine ====================
 print("\n" + "=" * 60)
 print("SUPPORT VECTOR MACHINE (SVM)")
 print("=" * 60)
@@ -121,7 +113,6 @@ try:
 except Exception as e:
     print(f" Error: {e}")
 
-# ==================== MODEL 5: Naive Bayes ====================
 print("\n" + "=" * 60)
 print("NAIVE BAYES CLASSIFIER")
 print("=" * 60)
@@ -135,7 +126,6 @@ try:
 except Exception as e:
     print(f" Error: {e}")
 
-# ==================== MODEL 6: NEURAL NETWORK – WINNING VERSION ====================
 print("\n" + "=" * 60)
 print("6 NEURAL NETWORK")
 print("=" * 60)
@@ -191,7 +181,6 @@ try:
         if (epoch + 1) % 50 == 0:
             print(f"   Epoch {epoch+1:3d} | Avg Loss: {epoch_loss:.6f} | Best: {best_loss:.6f}")
 
-    # Load best model
     model.load_state_dict(best_state)
     model.eval()
     with torch.no_grad():
@@ -207,7 +196,6 @@ except Exception as e:
     print(f"Error: {e}")
     results.append(("Neural Network (PyTorch)", 0.0))
 
-# ==================== FINAL CLEAN OUTPUT ====================
 print("\n" + "=" * 60)
 print(" FINAL RESULTS - CLEAN SUMMARY")
 print("=" * 60)
@@ -240,9 +228,7 @@ print(classification_report(
     target_names=tags,
     zero_division=0         
 ))
-# ==================== SAVE RESULTS TO JSON FOR NOTEBOOK ====================
 
-# Събиране на всички предикции
 predictions = {
     "Logistic Regression": lr_pred.tolist() if 'lr_pred' in locals() else None,
     "Decision Tree": dt_pred.tolist() if 'dt_pred' in locals() else None,
@@ -252,7 +238,6 @@ predictions = {
     "Neural Network (PyTorch)": nn_pred.tolist() if 'nn_pred' in locals() else None
 }
 
-# Финални резултати
 final_results = []
 for name, acc in results:
     final_results.append({
@@ -260,10 +245,7 @@ for name, acc in results:
         "accuracy": round(acc * 100, 2)
     })
 
-# Сортирай по accuracy
 final_results = sorted(final_results, key=lambda x: x['accuracy'], reverse=True)
-
-# Запис на всичко в JSON
 output_data = {
     "dataset_info": {
         "total_samples": len(X),
@@ -280,7 +262,6 @@ output_data = {
     "predictions": predictions
 }
 
-# Запис в файл
 output_path = "model_comparison_results.json"
 with open(output_path, 'w', encoding='utf-8') as f:
     json.dump(output_data, f, indent=2, ensure_ascii=False)
