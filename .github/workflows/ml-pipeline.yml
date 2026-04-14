@@ -12,15 +12,15 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v5.0.0
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v6.2.0
         with:
           python-version: '3.12'
 
       - name: Cache pip packages
-        uses: actions/cache@v5
+        uses: actions/cache@v5.0.0
         with:
           path: ~/.cache/pip
           key: pip-${{ hashFiles('requirements.txt') }}
@@ -35,7 +35,7 @@ jobs:
         run: python src/train.py
 
       - name: Upload model weights
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6.0.0
         with:
           name: model-weights
           path: data/data.pth
@@ -48,10 +48,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v5.0.0
 
       - name: Download model weights
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8.0.0
         with:
           name: model-weights
           path: data/
