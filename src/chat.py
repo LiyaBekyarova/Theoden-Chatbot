@@ -3,16 +3,19 @@ import random
 import json
 import re
 import torch
+from pathlib import Path
 from model import NeuralNet
 from nltk_utils import tokenize, bag_of_words
 from weather_utils import get_real_weather
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-with open('intents.json', 'r') as f:
+DATA_DIR = Path(__file__).parent.parent / "data"
+
+with open(DATA_DIR / 'intents.json', 'r') as f:
     intents = json.load(f)
 
-FILE = "data.pth"
+FILE = DATA_DIR / "data.pth"
 data = torch.load(FILE)
 input_size = data["input_size"]
 hidden_size = data["hidden_size"]

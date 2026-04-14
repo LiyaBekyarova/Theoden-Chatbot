@@ -3,3 +3,5 @@ nltk
 requests
 numpy
 scikit-learn
+fastapi
+uvicorn

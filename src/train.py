@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from nltk_utils import tokenize, stem, bag_of_words
 import numpy as np
 import torch
@@ -6,7 +7,9 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from model import NeuralNet
 
-with open('intents.json', 'r') as f:
+DATA_DIR = Path(__file__).parent.parent / "data"
+
+with open(DATA_DIR / 'intents.json', 'r') as f:
     intents = json.load(f)
 
 all_words = []
@@ -69,7 +72,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 best_loss = float('inf')
 patience = 50
 trigger_times = 0
-FILE = "data.pth"
+FILE = DATA_DIR / "data.pth"
 
 print(f"Training started... ({len(X_train)} samples, {input_size} words, {output_size} classes)")
 

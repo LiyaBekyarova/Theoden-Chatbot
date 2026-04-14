@@ -1,0 +1,70 @@
+name: ML Pipeline
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+
+  # ── Job 1: retrain the model ──────────────────────────────────
+  train:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('requirements.txt') }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download NLTK data
+        run: python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab')"
+
+      - name: Train model
+        run: python src/train.py
+
+      - name: Upload model weights
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-weights
+          path: data/data.pth
+
+
+  # ── Job 2: build and push Docker image ───────────────────────
+  docker:
+    needs: train
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download model weights
+        uses: actions/download-artifact@v4
+        with:
+          name: model-weights
+          path: data/
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/theoden-chatbot:latest
