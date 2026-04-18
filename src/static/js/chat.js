@@ -40,18 +40,49 @@ function addMessage(sender, role, text) {
   chatWindow.scrollTop = chatWindow.scrollHeight;
 }
 
+function showTyping() {
+  const el = document.createElement('div');
+  el.className = 'typing-indicator';
+  el.id = 'typing';
+
+  const avatar = document.createElement('img');
+  avatar.className = 'typing-indicator__avatar';
+  avatar.src = '/static/images/theoden.jpg';
+  avatar.alt = 'Théoden';
+
+  const dots = document.createElement('div');
+  dots.className = 'typing-indicator__dots';
+  dots.innerHTML = '<span></span><span></span><span></span>';
+
+  el.appendChild(avatar);
+  el.appendChild(dots);
+  chatWindow.appendChild(el);
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+function hideTyping() {
+  const el = document.getElementById('typing');
+  if (el) el.remove();
+}
+
 async function sendMessage() {
   const text = input.value.trim();
   if (!text) return;
 
   addMessage('You (Rider of the Mark)', 'user', text);
   input.value = '';
+  sendBtn.disabled = true;
+
+  showTyping();
 
   const res  = await fetch('/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text })
   });
+
+  hideTyping();
+  sendBtn.disabled = false;
 
   const data = await res.json();
   addMessage(`${data.sender}, King of Rohan`, 'bot', data.response);
