@@ -1,10 +1,27 @@
+fetch('/backgrounds')
+  .then(r => r.json())
+  .then(({ images }) => {
+    if (images.length === 0) return;
+    const pick = images[Math.floor(Math.random() * images.length)];
+    const bg = document.getElementById('bg');
+    bg.style.backgroundImage = `url('/static/images/backgrounds/${pick}')`;
+  });
+
 const chatWindow = document.querySelector('.chat-window');
 const input      = document.querySelector('.input-area__field');
 const sendBtn    = document.querySelector('.input-area__btn');
 
 function addMessage(sender, role, text) {
   const message = document.createElement('div');
-  message.className = 'message';
+  message.className = `message message--${role}`;
+
+  const avatar = document.createElement('img');
+  avatar.className = 'message__avatar';
+  avatar.src = role === 'bot' ? '/static/images/theoden.jpg' : '/static/images/user.svg';
+  avatar.alt = sender;
+
+  const content = document.createElement('div');
+  content.className = 'message__content';
 
   const senderEl = document.createElement('div');
   senderEl.className = `message__sender message__sender--${role}`;
@@ -14,8 +31,10 @@ function addMessage(sender, role, text) {
   bubble.className = 'message__bubble';
   bubble.textContent = text;
 
-  message.appendChild(senderEl);
-  message.appendChild(bubble);
+  content.appendChild(senderEl);
+  content.appendChild(bubble);
+  message.appendChild(avatar);
+  message.appendChild(content);
   chatWindow.appendChild(message);
 
   chatWindow.scrollTop = chatWindow.scrollHeight;
